@@ -16,7 +16,6 @@ import {
   newUserRepositoryMock,
   userStub,
 } from '@test';
-import { Stats } from 'fs';
 import { ILibraryFileJob, ILibraryRefreshJob, JobName } from '../job';
 import {
   IAssetRepository,
@@ -29,6 +28,7 @@ import {
 } from '../repositories';
 import { SystemConfigCore } from '../system-config/system-config.core';
 import { LibraryService } from './library.service';
+import {when} from "jest-when";
 
 describe(LibraryService.name, () => {
   let sut: LibraryService;
@@ -245,6 +245,7 @@ describe(LibraryService.name, () => {
 
       assetMock.getByLibraryIdAndOriginalPath.mockResolvedValue(null);
       assetMock.create.mockResolvedValue(assetStub.image);
+      when(storageMock.stat).calledWith(`${mockLibraryJob.assetPath}.xmp`).mockResolvedValue(undefined);
 
       await expect(sut.handleAssetRefresh(mockLibraryJob)).resolves.toBe(true);
 
@@ -345,6 +346,7 @@ describe(LibraryService.name, () => {
 
       assetMock.getByLibraryIdAndOriginalPath.mockResolvedValue(null);
       assetMock.create.mockResolvedValue(assetStub.video);
+      when(storageMock.stat).calledWith(`${mockLibraryJob.assetPath}.xmp`).mockResolvedValue(undefined);
 
       await expect(sut.handleAssetRefresh(mockLibraryJob)).resolves.toBe(true);
 

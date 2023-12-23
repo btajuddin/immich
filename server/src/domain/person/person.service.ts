@@ -249,7 +249,7 @@ export class PersonService {
 
     try {
       await this.repository.delete(person);
-      await this.storageRepository.unlink(person.thumbnailPath);
+      await this.storageRepository.remove(person.thumbnailPath);
     } catch (error: Error | any) {
       this.logger.error(`Unable to delete person: ${error}`, error?.stack);
     }

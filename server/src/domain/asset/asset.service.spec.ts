@@ -34,6 +34,11 @@ import {
 import { AssetService, UploadFieldName } from './asset.service';
 import { AssetJobName, AssetStatsResponseDto, DownloadResponseDto } from './dto';
 import { mapAsset } from './response-dto';
+import {randomBytes} from "crypto";
+import {fromRandomAccessReader} from 'yauzl';
+import {mkdtemp, writeFile} from 'fs/promises';
+import {join} from "node:path";
+import { tmpdir } from 'os';
 
 const downloadResponse: DownloadResponseDto = {
   totalSize: 105_000,
@@ -275,14 +280,14 @@ describe(AssetService.name, () => {
       expect(sut.getUploadFolder(uploadFile.filename(UploadFieldName.PROFILE_DATA, 'image.jpg'))).toEqual(
         'upload/profile/admin_id',
       );
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/profile/admin_id');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/profile/admin_id');
     });
 
     it('should return upload for everything else', () => {
       expect(sut.getUploadFolder(uploadFile.filename(UploadFieldName.ASSET_DATA, 'image.jpg'))).toEqual(
         'upload/upload/admin_id',
       );
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/upload/admin_id');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/upload/admin_id');
     });
   });
 
@@ -488,43 +493,34 @@ describe(AssetService.name, () => {
     });
 
     it('should download an archive', async () => {
-      const archiveMock = {
-        addFile: jest.fn(),
-        finalize: jest.fn(),
-        stream: new Readable(),
-      };
+      const asset1 = randomBytes(512);
+      const asset2 = randomBytes(512);
 
       accessMock.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1', 'asset-2']));
       assetMock.getByIds.mockResolvedValue([assetStub.noResizePath, assetStub.noWebpPath]);
-      storageMock.createZipStream.mockReturnValue(archiveMock);
+      when(storageMock.readFile).calledWith(assetStub.noResizePath.originalPath).mockResolvedValue(Readable.from(asset1));
+      when(storageMock.readFile).calledWith(assetStub.noWebpPath.originalPath).mockResolvedValue(Readable.from(asset2));
 
-      await expect(sut.downloadArchive(authStub.admin, { assetIds: ['asset-1', 'asset-2'] })).resolves.toEqual({
-        stream: archiveMock.stream,
-      });
+      const archiveObj = await sut.downloadArchive(authStub.admin, { assetIds: ['asset-1', 'asset-2'] });
 
-      expect(archiveMock.addFile).toHaveBeenCalledTimes(2);
-      expect(archiveMock.addFile).toHaveBeenNthCalledWith(1, 'upload/library/IMG_123.jpg', 'IMG_123.jpg');
-      expect(archiveMock.addFile).toHaveBeenNthCalledWith(2, 'upload/library/IMG_456.jpg', 'IMG_456.jpg');
+      expect(storageMock.readFile).toHaveBeenCalledTimes(2);
+      expect(storageMock.readFile).toHaveBeenNthCalledWith(1, 'upload/library/IMG_123.jpg');
+      expect(storageMock.readFile).toHaveBeenNthCalledWith(2, 'upload/library/IMG_456.jpg');
     });
 
     it('should handle duplicate file names', async () => {
-      const archiveMock = {
-        addFile: jest.fn(),
-        finalize: jest.fn(),
-        stream: new Readable(),
-      };
+      const asset = randomBytes(512);
 
       accessMock.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1', 'asset-2']));
       assetMock.getByIds.mockResolvedValue([assetStub.noResizePath, assetStub.noResizePath]);
-      storageMock.createZipStream.mockReturnValue(archiveMock);
+      when(storageMock.readFile).calledWith(assetStub.noResizePath.originalPath).mockResolvedValue(Readable.from(asset));
+      when(storageMock.readFile).calledWith(assetStub.noResizePath.originalPath).mockResolvedValue(Readable.from(asset));
 
-      await expect(sut.downloadArchive(authStub.admin, { assetIds: ['asset-1', 'asset-2'] })).resolves.toEqual({
-        stream: archiveMock.stream,
-      });
+      const archiveObj = await sut.downloadArchive(authStub.admin, { assetIds: ['asset-1', 'asset-2'] });
 
-      expect(archiveMock.addFile).toHaveBeenCalledTimes(2);
-      expect(archiveMock.addFile).toHaveBeenNthCalledWith(1, 'upload/library/IMG_123.jpg', 'IMG_123.jpg');
-      expect(archiveMock.addFile).toHaveBeenNthCalledWith(2, 'upload/library/IMG_123.jpg', 'IMG_123+1.jpg');
+      expect(storageMock.readFile).toHaveBeenCalledTimes(2);
+      expect(storageMock.readFile).toHaveBeenNthCalledWith(1, 'upload/library/IMG_123.jpg');
+      expect(storageMock.readFile).toHaveBeenNthCalledWith(2, 'upload/library/IMG_123.jpg');
     });
   });
 

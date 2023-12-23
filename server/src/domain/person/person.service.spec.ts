@@ -181,7 +181,7 @@ describe(PersonService.name, () => {
     it('should require person.read permission', async () => {
       personMock.getById.mockResolvedValue(personStub.noName);
       await expect(sut.getThumbnail(authStub.admin, 'person-1')).rejects.toBeInstanceOf(BadRequestException);
-      expect(storageMock.createReadStream).not.toHaveBeenCalled();
+      expect(storageMock.readFile).not.toHaveBeenCalled();
       expect(accessMock.person.checkOwnerAccess).toHaveBeenCalledWith(authStub.admin.user.id, new Set(['person-1']));
     });
 
@@ -189,7 +189,7 @@ describe(PersonService.name, () => {
       personMock.getById.mockResolvedValue(null);
       accessMock.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
       await expect(sut.getThumbnail(authStub.admin, 'person-1')).rejects.toBeInstanceOf(NotFoundException);
-      expect(storageMock.createReadStream).not.toHaveBeenCalled();
+      expect(storageMock.readFile).not.toHaveBeenCalled();
       expect(accessMock.person.checkOwnerAccess).toHaveBeenCalledWith(authStub.admin.user.id, new Set(['person-1']));
     });
 
@@ -197,7 +197,7 @@ describe(PersonService.name, () => {
       personMock.getById.mockResolvedValue(personStub.noThumbnail);
       accessMock.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
       await expect(sut.getThumbnail(authStub.admin, 'person-1')).rejects.toBeInstanceOf(NotFoundException);
-      expect(storageMock.createReadStream).not.toHaveBeenCalled();
+      expect(storageMock.readFile).not.toHaveBeenCalled();
       expect(accessMock.person.checkOwnerAccess).toHaveBeenCalledWith(authStub.admin.user.id, new Set(['person-1']));
     });
 
@@ -509,14 +509,14 @@ describe(PersonService.name, () => {
 
       await expect(sut.handlePersonDelete({ id: 'person-1' })).resolves.toBe(false);
       expect(personMock.update).not.toHaveBeenCalled();
-      expect(storageMock.unlink).not.toHaveBeenCalled();
+      expect(storageMock.remove).not.toHaveBeenCalled();
     });
     it('should delete a person', async () => {
       personMock.getById.mockResolvedValue(personStub.primaryPerson);
 
       await expect(sut.handlePersonDelete({ id: 'person-1' })).resolves.toBe(true);
       expect(personMock.delete).toHaveBeenCalledWith(personStub.primaryPerson);
-      expect(storageMock.unlink).toHaveBeenCalledWith(personStub.primaryPerson.thumbnailPath);
+      expect(storageMock.remove).toHaveBeenCalledWith(personStub.primaryPerson.thumbnailPath);
     });
   });
 
@@ -527,7 +527,7 @@ describe(PersonService.name, () => {
       await sut.handlePersonDelete({ id: personStub.withName.id });
 
       expect(personMock.delete).toHaveBeenCalledWith(personStub.withName);
-      expect(storageMock.unlink).toHaveBeenCalledWith(personStub.withName.thumbnailPath);
+      expect(storageMock.remove).toHaveBeenCalledWith(personStub.withName.thumbnailPath);
     });
   });
 
@@ -733,7 +733,7 @@ describe(PersonService.name, () => {
       await sut.handleGeneratePersonThumbnail({ id: 'person-1' });
 
       expect(assetMock.getByIds).toHaveBeenCalledWith([faceStub.middle.assetId]);
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/thumbs/admin_id/pe/rs');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/thumbs/admin_id/pe/rs');
       expect(mediaMock.crop).toHaveBeenCalledWith('/uploads/admin-id/thumbs/path.jpg', {
         left: 95,
         top: 95,

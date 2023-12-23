@@ -18,7 +18,7 @@ describe(StorageService.name, () => {
   describe('init', () => {
     it('should create the library folder on initialization', () => {
       sut.init();
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/library');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/library');
     });
   });
 
@@ -26,21 +26,21 @@ describe(StorageService.name, () => {
     it('should handle null values', async () => {
       await sut.handleDeleteFiles({ files: [undefined, null] });
 
-      expect(storageMock.unlink).not.toHaveBeenCalled();
+      expect(storageMock.remove).not.toHaveBeenCalled();
     });
 
     it('should handle an error removing a file', async () => {
-      storageMock.unlink.mockRejectedValue(new Error('something-went-wrong'));
+      storageMock.remove.mockRejectedValue(new Error('something-went-wrong'));
 
       await sut.handleDeleteFiles({ files: ['path/to/something'] });
 
-      expect(storageMock.unlink).toHaveBeenCalledWith('path/to/something');
+      expect(storageMock.remove).toHaveBeenCalledWith('path/to/something');
     });
 
     it('should remove the file', async () => {
       await sut.handleDeleteFiles({ files: ['path/to/something'] });
 
-      expect(storageMock.unlink).toHaveBeenCalledWith('path/to/something');
+      expect(storageMock.remove).toHaveBeenCalledWith('path/to/something');
     });
   });
 });

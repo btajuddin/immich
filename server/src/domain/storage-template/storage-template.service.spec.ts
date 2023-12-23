@@ -64,11 +64,21 @@ describe(StorageTemplateService.name, () => {
       const path = (id: string) => `upload/library/${userStub.user1.id}/2023/2023-02-23/${id}.jpg`;
       const newPath = (id: string) => `upload/library/${userStub.user1.id}/2023/2023-02-23/${id}+1.jpg`;
 
-      when(storageMock.checkFileExists).calledWith(path(assetStub.livePhotoStillAsset.id)).mockResolvedValue(true);
-      when(storageMock.checkFileExists).calledWith(newPath(assetStub.livePhotoStillAsset.id)).mockResolvedValue(false);
+      when(storageMock.stat).calledWith(path(assetStub.livePhotoStillAsset.id)).mockResolvedValue({
+        size: 100,
+        mtime: new Date(),
+        canRead: true,
+        canWrite: true
+      });
+      when(storageMock.stat).calledWith(newPath(assetStub.livePhotoStillAsset.id)).mockResolvedValue(undefined);
 
-      when(storageMock.checkFileExists).calledWith(path(assetStub.livePhotoMotionAsset.id)).mockResolvedValue(true);
-      when(storageMock.checkFileExists).calledWith(newPath(assetStub.livePhotoMotionAsset.id)).mockResolvedValue(false);
+      when(storageMock.stat).calledWith(path(assetStub.livePhotoMotionAsset.id)).mockResolvedValue({
+        size: 100,
+        mtime: new Date(),
+        canRead: true,
+        canWrite: true
+      });
+      when(storageMock.stat).calledWith(newPath(assetStub.livePhotoMotionAsset.id)).mockResolvedValue(undefined);
 
       when(assetMock.save)
         .calledWith({ id: assetStub.livePhotoStillAsset.id, originalPath: newPath(assetStub.livePhotoStillAsset.id) })
@@ -121,18 +131,23 @@ describe(StorageTemplateService.name, () => {
         newPath: 'upload/library/user-id/2023/2023-02-23/asset-id+1.jpg',
       });
 
-      when(storageMock.checkFileExists)
+      when(storageMock.stat)
         .calledWith('upload/library/user-id/2023/2023-02-23/asset-id.jpg')
-        .mockResolvedValue(true);
+        .mockResolvedValue({
+          size: 100,
+          mtime: new Date(),
+          canRead: true,
+          canWrite: true
+        });
 
-      when(storageMock.checkFileExists)
+      when(storageMock.stat)
         .calledWith('upload/library/user-id/2023/2023-02-23/asset-id+1.jpg')
-        .mockResolvedValue(false);
+        .mockResolvedValue(undefined);
 
       await sut.handleMigration();
 
       expect(assetMock.getAll).toHaveBeenCalled();
-      expect(storageMock.checkFileExists).toHaveBeenCalledTimes(2);
+      expect(storageMock.stat).toHaveBeenCalledTimes(2);
       expect(assetMock.save).toHaveBeenCalledWith({
         id: assetStub.image.id,
         originalPath: 'upload/library/user-id/2023/2023-02-23/asset-id+1.jpg',
@@ -156,7 +171,7 @@ describe(StorageTemplateService.name, () => {
 
       expect(assetMock.getAll).toHaveBeenCalled();
       expect(storageMock.moveFile).not.toHaveBeenCalled();
-      expect(storageMock.checkFileExists).not.toHaveBeenCalledTimes(2);
+      expect(storageMock.stat).not.toHaveBeenCalledTimes(2);
       expect(assetMock.save).not.toHaveBeenCalled();
     });
 
@@ -176,7 +191,7 @@ describe(StorageTemplateService.name, () => {
 
       expect(assetMock.getAll).toHaveBeenCalled();
       expect(storageMock.moveFile).not.toHaveBeenCalled();
-      expect(storageMock.checkFileExists).not.toHaveBeenCalledTimes(2);
+      expect(storageMock.stat).not.toHaveBeenCalledTimes(2);
       expect(assetMock.save).not.toHaveBeenCalled();
     });
 

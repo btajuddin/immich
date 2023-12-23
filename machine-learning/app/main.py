@@ -90,7 +90,7 @@ async def predict(
     image: UploadFile | None = None,
 ) -> Any:
     if image is not None:
-        inputs: str | bytes = await image.read()
+        inputs: str | bytes = await image.remad()
     elif text is not None:
         inputs = text
     else:

@@ -37,6 +37,7 @@ import {
   WithoutProperty,
 } from '../repositories';
 import { MetadataService, Orientation } from './metadata.service';
+import {Readable} from "stream";
 
 describe(MetadataService.name, () => {
   let albumMock: jest.Mocked<IAlbumRepository>;
@@ -223,7 +224,12 @@ describe(MetadataService.name, () => {
 
   describe('handleMetadataExtraction', () => {
     beforeEach(() => {
-      storageMock.stat.mockResolvedValue({ size: 123456 } as Stats);
+      storageMock.stat.mockResolvedValue({
+        size: 123456,
+        mtime: new Date(),
+        canRead: true,
+        canWrite: true
+      });
     });
 
     it('should handle an asset that could not be found', async () => {
@@ -350,13 +356,13 @@ describe(MetadataService.name, () => {
         MicroVideo: 1,
         MicroVideoOffset: 1,
       });
-      storageMock.readFile.mockResolvedValue(randomBytes(512));
+      storageMock.readFile.mockResolvedValue(Readable.from(randomBytes(512)));
       cryptoRepository.hashSha1.mockReturnValue(randomBytes(512));
       assetMock.getByChecksum.mockResolvedValue(assetStub.livePhotoMotionAsset);
 
       await sut.handleMetadataExtraction({ id: assetStub.livePhotoStillAsset.id });
       expect(assetMock.getByIds).toHaveBeenCalledWith([assetStub.livePhotoStillAsset.id]);
-      expect(storageMock.readFile).toHaveBeenCalledWith(assetStub.livePhotoStillAsset.originalPath, expect.any(Object));
+      expect(storageMock.readFile).toHaveBeenCalledWith(assetStub.livePhotoStillAsset.originalPath);
       expect(assetMock.save).toHaveBeenCalledWith({
         id: assetStub.livePhotoStillAsset.id,
         livePhotoVideoId: assetStub.livePhotoMotionAsset.id,
@@ -372,14 +378,14 @@ describe(MetadataService.name, () => {
         MicroVideoOffset: 1,
       });
       const video = randomBytes(512);
-      storageMock.readFile.mockResolvedValue(video);
+      storageMock.readFile.mockResolvedValue(Readable.from(video));
       cryptoRepository.hashSha1.mockReturnValue(randomBytes(512));
       assetMock.create.mockResolvedValueOnce(assetStub.livePhotoMotionAsset);
       assetMock.save.mockResolvedValueOnce(assetStub.livePhotoMotionAsset);
 
       await sut.handleMetadataExtraction({ id: assetStub.livePhotoStillAsset.id });
       expect(assetMock.getByIds).toHaveBeenCalledWith([assetStub.livePhotoStillAsset.id]);
-      expect(storageMock.readFile).toHaveBeenCalledWith(assetStub.livePhotoStillAsset.originalPath, expect.any(Object));
+      expect(storageMock.readFile).toHaveBeenCalledWith(assetStub.livePhotoStillAsset.originalPath);
       expect(assetMock.create).toHaveBeenCalledWith(
         expect.objectContaining({
           type: AssetType.VIDEO,
@@ -546,18 +552,18 @@ describe(MetadataService.name, () => {
     it('should skip hidden assets', async () => {
       assetMock.getByIds.mockResolvedValue([assetStub.livePhotoMotionAsset]);
       await sut.handleSidecarDiscovery({ id: assetStub.livePhotoMotionAsset.id });
-      expect(storageMock.checkFileExists).not.toHaveBeenCalled();
+      expect(storageMock.stat).not.toHaveBeenCalled();
     });
 
     it('should skip assets with a sidecar path', async () => {
       assetMock.getByIds.mockResolvedValue([assetStub.sidecar]);
       await sut.handleSidecarDiscovery({ id: assetStub.sidecar.id });
-      expect(storageMock.checkFileExists).not.toHaveBeenCalled();
+      expect(storageMock.stat).not.toHaveBeenCalled();
     });
 
     it('should do nothing when a sidecar is not found ', async () => {
       assetMock.getByIds.mockResolvedValue([assetStub.image]);
-      storageMock.checkFileExists.mockResolvedValue(false);
+      storageMock.stat.mockResolvedValue(undefined);
       await sut.handleSidecarDiscovery({ id: assetStub.image.id });
       expect(assetMock.save).not.toHaveBeenCalled();
     });
@@ -565,9 +571,14 @@ describe(MetadataService.name, () => {
     it('should update a image asset when a sidecar is found', async () => {
       assetMock.getByIds.mockResolvedValue([assetStub.image]);
       assetMock.save.mockResolvedValue(assetStub.image);
-      storageMock.checkFileExists.mockResolvedValue(true);
+      storageMock.stat.mockResolvedValue({
+        size: 100,
+        mtime: new Date(),
+        canRead: true,
+        canWrite: true
+      });
       await sut.handleSidecarDiscovery({ id: assetStub.image.id });
-      expect(storageMock.checkFileExists).toHaveBeenCalledWith('/original/path.jpg.xmp', constants.R_OK);
+      expect(storageMock.stat).toHaveBeenCalledWith('/original/path.jpg.xmp');
       expect(assetMock.save).toHaveBeenCalledWith({
         id: assetStub.image.id,
         sidecarPath: '/original/path.jpg.xmp',
@@ -577,9 +588,14 @@ describe(MetadataService.name, () => {
     it('should update a video asset when a sidecar is found', async () => {
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
       assetMock.save.mockResolvedValue(assetStub.video);
-      storageMock.checkFileExists.mockResolvedValue(true);
+      storageMock.stat.mockResolvedValue({
+        size: 100,
+        mtime: new Date(),
+        canRead: true,
+        canWrite: true
+      });
       await sut.handleSidecarDiscovery({ id: assetStub.video.id });
-      expect(storageMock.checkFileExists).toHaveBeenCalledWith('/original/path.ext.xmp', constants.R_OK);
+      expect(storageMock.stat).toHaveBeenCalledWith('/original/path.ext.xmp');
       expect(assetMock.save).toHaveBeenCalledWith({
         id: assetStub.image.id,
         sidecarPath: '/original/path.ext.xmp',

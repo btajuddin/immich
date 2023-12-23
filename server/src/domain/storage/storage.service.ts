@@ -12,7 +12,7 @@ export class StorageService {
 
   init() {
     const libraryBase = StorageCore.getBaseFolder(StorageFolder.LIBRARY);
-    this.storageRepository.mkdirSync(libraryBase);
+    this.storageRepository.mkdir(libraryBase);
   }
 
   async handleDeleteFiles(job: IDeleteFilesJob) {
@@ -25,7 +25,7 @@ export class StorageService {
       }
 
       try {
-        await this.storageRepository.unlink(file);
+        await this.storageRepository.remove(file);
       } catch (error: any) {
         this.logger.warn('Unable to remove file from disk', error);
       }

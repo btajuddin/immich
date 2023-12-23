@@ -1,6 +1,6 @@
 import {
   CrawlOptionsDto,
-  DiskUsage,
+  DiskUsage, FileStats,
   ImmichReadStream,
   ImmichZipStream,
   IStorageRepository,
@@ -14,6 +14,7 @@ import { glob } from 'glob';
 import mv from 'mv';
 import { promisify } from 'node:util';
 import path from 'path';
+import {Readable} from "stream";
 
 const moveFile = promisify<string, string, mv.Options>(mv);
 
@@ -42,11 +43,11 @@ export class FilesystemProvider implements IStorageRepository {
     };
   }
 
-  async readFile(filepath: string, options?: fs.FileReadOptions<Buffer>): Promise<Buffer> {
+  async readFile(filepath: string): Promise<Readable> {
     const file = await fs.open(filepath);
     try {
-      const { buffer } = await file.read(options);
-      return buffer;
+      const { buffer } = await file.read();
+      return Readable.from(buffer);
     } finally {
       await file.close();
     }
@@ -57,30 +58,31 @@ export class FilesystemProvider implements IStorageRepository {
   async moveFile(source: string, destination: string): Promise<void> {
     this.logger.verbose(`Moving ${source} to ${destination}`);
 
-    if (await this.checkFileExists(destination)) {
+    if (!!(await this.stat(destination))) {
       throw new Error(`Destination file already exists: ${destination}`);
     }
 
     await moveFile(source, destination, { mkdirp: true, clobber: true });
   }
 
-  async checkFileExists(filepath: string, mode = constants.F_OK): Promise<boolean> {
-    try {
-      await fs.access(filepath, mode);
-      return true;
-    } catch (_) {
-      return false;
+  remove(filepath: string, options?: { recursive?: boolean; force?: boolean; } | undefined): Promise<void> {
+    return fs.rm(filepath, options)
+  }
+
+  async stat(filepath: string): Promise<FileStats | undefined> {
+    const stats = await fs.stat(filepath);
+    const read = fs.access(filepath, fs.constants.R_OK).then(() => true, () => false);
+    const write = fs.access(filepath, fs.constants.W_OK).then(() => true, () => false);
+    if (!stats) {
+      return stats;
     }
-  }
 
-  async unlink(file: string) {
-    await fs.unlink(file);
-  }
-
-  stat = fs.stat;
-
-  async unlinkDir(folder: string, options: { recursive?: boolean; force?: boolean }) {
-    await fs.rm(folder, options);
+    return {
+      size: stats.size,
+      mtime: stats.mtime,
+      canRead: await read,
+      canWrite: await write
+    }
   }
 
   async removeEmptyDirs(directory: string, self: boolean = false) {
@@ -101,7 +103,7 @@ export class FilesystemProvider implements IStorageRepository {
     }
   }
 
-  mkdirSync(filepath: string): void {
+  mkdir(filepath: string): void {
     if (!existsSync(filepath)) {
       mkdirSync(filepath, { recursive: true });
     }

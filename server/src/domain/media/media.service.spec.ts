@@ -12,6 +12,7 @@ import {
   assetStub,
   faceStub,
   newAssetRepositoryMock,
+  newCodecRepositoryMock,
   newJobRepositoryMock,
   newMediaRepositoryMock,
   newMoveRepositoryMock,
@@ -23,7 +24,7 @@ import {
 } from '@test';
 import { JobName } from '../job';
 import {
-  IAssetRepository,
+  IAssetRepository, ICodecRepository,
   IJobRepository,
   IMediaRepository,
   IMoveRepository,
@@ -43,6 +44,7 @@ describe(MediaService.name, () => {
   let moveMock: jest.Mocked<IMoveRepository>;
   let personMock: jest.Mocked<IPersonRepository>;
   let storageMock: jest.Mocked<IStorageRepository>;
+  let codecMock: jest.Mocked<ICodecRepository>;
 
   beforeEach(async () => {
     assetMock = newAssetRepositoryMock();
@@ -52,8 +54,9 @@ describe(MediaService.name, () => {
     moveMock = newMoveRepositoryMock();
     personMock = newPersonRepositoryMock();
     storageMock = newStorageRepositoryMock();
+    codecMock = newCodecRepositoryMock();
 
-    sut = new MediaService(assetMock, personMock, jobMock, mediaMock, storageMock, configMock, moveMock);
+    sut = new MediaService(assetMock, personMock, jobMock, mediaMock, storageMock, configMock, moveMock, codecMock);
   });
 
   it('should be defined', () => {
@@ -191,7 +194,7 @@ describe(MediaService.name, () => {
       assetMock.getByIds.mockResolvedValue([assetStub.image]);
       await sut.handleGenerateJpegThumbnail({ id: assetStub.image.id });
 
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
       expect(mediaMock.resize).toHaveBeenCalledWith('/original/path.jpg', 'upload/thumbs/user-id/as/se/asset-id.jpeg', {
         size: 1440,
         format: 'jpeg',
@@ -210,7 +213,7 @@ describe(MediaService.name, () => {
       ]);
       await sut.handleGenerateJpegThumbnail({ id: assetStub.image.id });
 
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
       expect(mediaMock.resize).toHaveBeenCalledWith('/original/path.jpg', 'upload/thumbs/user-id/as/se/asset-id.jpeg', {
         size: 1440,
         format: 'jpeg',
@@ -228,7 +231,7 @@ describe(MediaService.name, () => {
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
       await sut.handleGenerateJpegThumbnail({ id: assetStub.video.id });
 
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
       expect(mediaMock.transcode).toHaveBeenCalledWith(
         '/original/path.ext',
         'upload/thumbs/user-id/as/se/asset-id.jpeg',
@@ -253,7 +256,7 @@ describe(MediaService.name, () => {
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
       await sut.handleGenerateJpegThumbnail({ id: assetStub.video.id });
 
-      expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
+      expect(storageMock.mkdir).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
       expect(mediaMock.transcode).toHaveBeenCalledWith(
         '/original/path.ext',
         'upload/thumbs/user-id/as/se/asset-id.jpeg',
@@ -334,7 +337,7 @@ describe(MediaService.name, () => {
     ]);
     await sut.handleGenerateWebpThumbnail({ id: assetStub.image.id });
 
-    expect(storageMock.mkdirSync).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
+    expect(storageMock.mkdir).toHaveBeenCalledWith('upload/thumbs/user-id/as/se');
     expect(mediaMock.resize).toHaveBeenCalledWith('/original/path.jpg', 'upload/thumbs/user-id/as/se/asset-id.webp', {
       format: 'webp',
       size: 250,
@@ -434,7 +437,7 @@ describe(MediaService.name, () => {
 
       expect(mediaMock.probe).toHaveBeenCalledWith('/original/path.ext');
       expect(configMock.load).toHaveBeenCalled();
-      expect(storageMock.mkdirSync).toHaveBeenCalled();
+      expect(storageMock.mkdir).toHaveBeenCalled();
       expect(mediaMock.transcode).toHaveBeenCalledWith(
         '/original/path.ext',
         'upload/encoded-video/user-id/as/se/asset-id.mp4',
@@ -1202,7 +1205,7 @@ describe(MediaService.name, () => {
     });
 
     it('should set options for qsv', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.QSV },
@@ -1238,7 +1241,7 @@ describe(MediaService.name, () => {
     });
 
     it('should omit preset for qsv if invalid', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.QSV },
@@ -1271,7 +1274,7 @@ describe(MediaService.name, () => {
     });
 
     it('should set low power mode for qsv if target video codec is vp9', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.QSV },
@@ -1306,7 +1309,7 @@ describe(MediaService.name, () => {
     });
 
     it('should return false for qsv if no hw devices', async () => {
-      storageMock.readdir.mockResolvedValue([]);
+      codecMock.findCodecs.mockResolvedValue([]);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([{ key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.QSV }]);
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
@@ -1315,7 +1318,7 @@ describe(MediaService.name, () => {
     });
 
     it('should set vbr options for vaapi when max bitrate is enabled', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.VAAPI },
@@ -1350,7 +1353,7 @@ describe(MediaService.name, () => {
     });
 
     it('should set cq options for vaapi when max bitrate is disabled', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([{ key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.VAAPI }]);
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
@@ -1381,7 +1384,7 @@ describe(MediaService.name, () => {
     });
 
     it('should omit preset for vaapi if invalid', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.VAAPI },
@@ -1414,7 +1417,7 @@ describe(MediaService.name, () => {
     });
 
     it('should prefer gpu for vaapi if available', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD129', 'card1', 'card0', 'renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD129', 'card1', 'card0', 'renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([{ key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.VAAPI }]);
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
@@ -1443,7 +1446,7 @@ describe(MediaService.name, () => {
         },
       );
 
-      storageMock.readdir.mockResolvedValue(['renderD129', 'renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD129', 'renderD128']);
       await sut.handleVideoConversion({ id: assetStub.video.id });
       expect(mediaMock.transcode).toHaveBeenCalledWith(
         '/original/path.ext',
@@ -1471,7 +1474,7 @@ describe(MediaService.name, () => {
     });
 
     it('should fallback to sw transcoding if hw transcoding fails', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([{ key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.VAAPI }]);
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
@@ -1501,7 +1504,7 @@ describe(MediaService.name, () => {
     });
 
     it('should return false for vaapi if no hw devices', async () => {
-      storageMock.readdir.mockResolvedValue([]);
+      codecMock.findCodecs.mockResolvedValue([]);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([{ key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.VAAPI }]);
       assetMock.getByIds.mockResolvedValue([assetStub.video]);
@@ -1510,7 +1513,7 @@ describe(MediaService.name, () => {
     });
 
     it('should set vbr options for rkmpp when max bitrate is enabled', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.RKMPP },
@@ -1549,7 +1552,7 @@ describe(MediaService.name, () => {
     });
 
     it('should set cqp options for rkmpp when max bitrate is disabled', async () => {
-      storageMock.readdir.mockResolvedValue(['renderD128']);
+      codecMock.findCodecs.mockResolvedValue(['renderD128']);
       mediaMock.probe.mockResolvedValue(probeStub.matroskaContainer);
       configMock.load.mockResolvedValue([
         { key: SystemConfigKey.FFMPEG_ACCEL, value: TranscodeHWAccel.RKMPP },

@@ -12,6 +12,7 @@ import { IBaseJob, IEntityJob, ILibraryFileJob, ILibraryRefreshJob, JOBS_ASSET_P
 
 import { ImmichLogger } from '@app/infra/logger';
 import {
+  FileStats,
   IAccessRepository,
   IAssetRepository,
   ICryptoRepository,
@@ -176,9 +177,9 @@ export class LibraryService {
 
     const existingAssetEntity = await this.assetRepository.getByLibraryIdAndOriginalPath(job.id, assetPath);
 
-    let stats: Stats;
+    let stats: FileStats;
     try {
-      stats = await this.storageRepository.stat(assetPath);
+      stats = (await this.storageRepository.stat(assetPath))!;
     } catch (error: Error | any) {
       // Can't access file, probably offline
       if (existingAssetEntity) {
@@ -239,7 +240,7 @@ export class LibraryService {
 
     // TODO: doesn't xmp replace the file extension? Will need investigation
     let sidecarPath: string | null = null;
-    if (await this.storageRepository.checkFileExists(`${assetPath}.xmp`, R_OK)) {
+    if ((await this.storageRepository.stat(`${assetPath}.xmp`))?.canRead) {
       sidecarPath = `${assetPath}.xmp`;
     }
 

@@ -275,7 +275,7 @@ export class MetadataService {
     }
 
     const sidecarPath = `${asset.originalPath}.xmp`;
-    const exists = await this.storageRepository.checkFileExists(sidecarPath, constants.R_OK);
+    const exists = (await this.storageRepository.stat(sidecarPath))?.canRead || false;
     if (!exists) {
       return false;
     }
@@ -371,13 +371,12 @@ export class MetadataService {
     this.logger.debug(`Starting motion photo video extraction (${asset.id})`);
 
     try {
-      const stat = await this.storageRepository.stat(asset.originalPath);
+      const stat = (await this.storageRepository.stat(asset.originalPath))!;
       const position = stat.size - length - padding;
-      const video = await this.storageRepository.readFile(asset.originalPath, {
-        buffer: Buffer.alloc(length),
-        position,
-        length,
-      });
+      const videoStream = await this.storageRepository.readFile(asset.originalPath);
+      videoStream.drop(position);
+      const video: Buffer = videoStream.read(length);
+
       const checksum = this.cryptoRepository.hashSha1(video);
 
       const motionPath = StorageCore.getAndroidMotionPath(asset);
@@ -417,7 +416,7 @@ export class MetadataService {
   private async exifData(
     asset: AssetEntity,
   ): Promise<{ exifData: ExifEntityWithoutGeocodeAndTypeOrm; tags: ImmichTags }> {
-    const stats = await this.storageRepository.stat(asset.originalPath);
+    const stats = (await this.storageRepository.stat(asset.originalPath))!;
     const mediaTags = await this.repository.readTags(asset.originalPath);
     const sidecarTags = asset.sidecarPath ? await this.repository.readTags(asset.sidecarPath) : null;
 

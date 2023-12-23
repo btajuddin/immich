@@ -13,7 +13,7 @@ import { usePagination } from '../domain.util';
 import { IBaseJob, IEntityJob, JOBS_ASSET_PAGINATION_SIZE, JobName, QueueName } from '../job';
 import {
   AudioStreamInfo,
-  IAssetRepository,
+  IAssetRepository, ICodecRepository,
   IJobRepository,
   IMediaRepository,
   IMoveRepository,
@@ -52,6 +52,7 @@ export class MediaService {
     @Inject(IStorageRepository) private storageRepository: IStorageRepository,
     @Inject(ISystemConfigRepository) configRepository: ISystemConfigRepository,
     @Inject(IMoveRepository) moveRepository: IMoveRepository,
+    @Inject(ICodecRepository) private codecRepository: ICodecRepository,
   ) {
     this.configCore = SystemConfigCore.create(configRepository);
     this.storageCore = StorageCore.create(assetRepository, moveRepository, personRepository, storageRepository);
@@ -349,22 +350,18 @@ export class MediaService {
 
   private async getHWCodecConfig(config: SystemConfigFFmpegDto) {
     let handler: VideoCodecHWConfig;
-    let devices: string[];
     switch (config.accel) {
       case TranscodeHWAccel.NVENC:
         handler = new NVENCConfig(config);
         break;
       case TranscodeHWAccel.QSV:
-        devices = await this.storageRepository.readdir('/dev/dri');
-        handler = new QSVConfig(config, devices);
+        handler = new QSVConfig(config, await this.codecRepository.findCodecs());
         break;
       case TranscodeHWAccel.VAAPI:
-        devices = await this.storageRepository.readdir('/dev/dri');
-        handler = new VAAPIConfig(config, devices);
+        handler = new VAAPIConfig(config, await this.codecRepository.findCodecs());
         break;
       case TranscodeHWAccel.RKMPP:
-        devices = await this.storageRepository.readdir('/dev/dri');
-        handler = new RKMPPConfig(config, devices);
+        handler = new RKMPPConfig(config, await this.codecRepository.findCodecs());
         break;
       default:
         throw new UnsupportedMediaTypeException(`${config.accel.toUpperCase()} acceleration is unsupported`);

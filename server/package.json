@@ -104,6 +104,7 @@
     "@types/sharp": "^0.31.1",
     "@types/supertest": "^2.0.12",
     "@types/ua-parser-js": "^0.7.36",
+    "@types/yauzl": "^2.10.3",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
     "dotenv": "^16.3.1",
@@ -125,7 +126,8 @@
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.2.2",
-    "utimes": "^5.2.1"
+    "utimes": "^5.2.1",
+    "yauzl": "^2.10.0"
   },
   "jest": {
     "clearMocks": true,

@@ -200,7 +200,7 @@ export class StorageTemplateService {
       let duplicateCount = 0;
 
       while (true) {
-        const exists = await this.storageRepository.checkFileExists(destination);
+        const exists = !!(await this.storageRepository.stat(destination));
         if (!exists) {
           break;
         }

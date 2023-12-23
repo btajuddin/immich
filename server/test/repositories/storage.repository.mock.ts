@@ -6,19 +6,14 @@ export const newStorageRepositoryMock = (reset = true): jest.Mocked<IStorageRepo
   }
 
   return {
-    createZipStream: jest.fn(),
-    createReadStream: jest.fn(),
+    remove: jest.fn(),
     readFile: jest.fn(),
     writeFile: jest.fn(),
-    unlink: jest.fn(),
-    unlinkDir: jest.fn().mockResolvedValue(true),
     removeEmptyDirs: jest.fn(),
     moveFile: jest.fn(),
-    checkFileExists: jest.fn(),
-    mkdirSync: jest.fn(),
+    mkdir: jest.fn(),
     checkDiskUsage: jest.fn(),
-    readdir: jest.fn(),
     stat: jest.fn(),
-    crawl: jest.fn(),
+    crawl: jest.fn()
   };
 };

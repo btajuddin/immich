@@ -55,6 +55,7 @@ import {
   TimeBucketResponseDto,
   mapAsset,
 } from './response-dto';
+import archiver from "archiver";
 
 export enum UploadFieldName {
   ASSET_DATA = 'assetData',
@@ -180,7 +181,7 @@ export class AssetService {
       folder = StorageCore.getFolderLocation(StorageFolder.PROFILE, auth.user.id);
     }
 
-    this.storageRepository.mkdirSync(folder);
+    this.storageRepository.mkdir(folder);
 
     return folder;
   }
@@ -331,7 +332,7 @@ export class AssetService {
   async downloadArchive(auth: AuthDto, dto: AssetIdsDto): Promise<ImmichReadStream> {
     await this.access.requirePermission(auth, Permission.ASSET_DOWNLOAD, dto.assetIds);
 
-    const zip = this.storageRepository.createZipStream();
+    const zip = archiver('zip', { store: true });
     const assets = await this.assetRepository.getByIds(dto.assetIds);
     const paths: Record<string, number> = {};
 
@@ -344,12 +345,15 @@ export class AssetService {
         filename = `${originalFileName}+${count}${ext}`;
       }
 
-      zip.addFile(originalPath, filename);
+      zip.append(await this.storageRepository.readFile(originalPath), {
+        store: true,
+        name: filename
+      });
     }
 
     void zip.finalize();
 
-    return { stream: zip.stream };
+    return { stream: zip };
   }
 
   private async getDownloadAssets(auth: AuthDto, dto: DownloadInfoDto): Promise<AsyncGenerator<AssetEntity[]>> {

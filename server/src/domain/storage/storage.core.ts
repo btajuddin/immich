@@ -141,8 +141,8 @@ export class StorageCore {
     let move = await this.moveRepository.getByEntity(entityId, pathType);
     if (move) {
       this.logger.log(`Attempting to finish incomplete move: ${move.oldPath} => ${move.newPath}`);
-      const oldPathExists = await this.repository.checkFileExists(move.oldPath);
-      const newPathExists = await this.repository.checkFileExists(move.newPath);
+      const oldPathExists = !!(await this.repository.stat(move.oldPath));
+      const newPathExists = !!(await this.repository.stat(move.newPath));
       const actualPath = newPathExists ? move.newPath : oldPathExists ? move.oldPath : null;
       if (!actualPath) {
         this.logger.warn('Unable to complete move. File does not exist at either location.');
@@ -164,7 +164,7 @@ export class StorageCore {
   }
 
   ensureFolders(input: string) {
-    this.repository.mkdirSync(dirname(input));
+    this.repository.mkdir(dirname(input));
   }
 
   removeEmptyDirs(folder: StorageFolder) {

@@ -55,8 +55,9 @@ describe(LibraryService.name, () => {
     storageMock.stat.mockResolvedValue({
       size: 100,
       mtime: new Date('2023-01-01'),
-      ctime: new Date('2023-01-01'),
-    } as Stats);
+      canRead: true,
+      canWrite: true
+    });
 
     // Always validate owner access for library.
     accessMock.library.checkOwnerAccess.mockImplementation(async (_, libraryIds) => libraryIds);
@@ -291,7 +292,12 @@ describe(LibraryService.name, () => {
 
       assetMock.getByLibraryIdAndOriginalPath.mockResolvedValue(null);
       assetMock.create.mockResolvedValue(assetStub.image);
-      storageMock.checkFileExists.mockResolvedValue(true);
+      storageMock.stat.mockResolvedValue({
+        size: 100,
+        mtime: new Date(),
+        canRead: true,
+        canWrite: true
+      });
 
       await expect(sut.handleAssetRefresh(mockLibraryJob)).resolves.toBe(true);
 
@@ -412,8 +418,9 @@ describe(LibraryService.name, () => {
       storageMock.stat.mockResolvedValue({
         size: 100,
         mtime: assetStub.image.fileModifiedAt,
-        ctime: new Date('2023-01-01'),
-      } as Stats);
+        canRead: true,
+        canWrite: true,
+      });
 
       assetMock.getByLibraryIdAndOriginalPath.mockResolvedValue(assetStub.image);
 
@@ -550,8 +557,9 @@ describe(LibraryService.name, () => {
       storageMock.stat.mockResolvedValue({
         size: 100,
         mtime: filemtime,
-        ctime: new Date('2023-01-01'),
-      } as Stats);
+        canRead: true,
+        canWrite: true,
+      });
 
       assetMock.getByLibraryIdAndOriginalPath.mockResolvedValue(null);
       assetMock.create.mockResolvedValue(assetStub.image);

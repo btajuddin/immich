@@ -4,6 +4,7 @@ export * from './album.repository';
 export * from './api-key.repository';
 export * from './asset.repository';
 export * from './audit.repository';
+export * from './codec.repository';
 export * from './communication.repository';
 export * from './crypto.repository';
 export * from './database.repository';
